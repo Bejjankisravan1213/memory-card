@@ -1,65 +1,78 @@
-const gameBoard = document.getElementById("gameBoard");
+const cardsArray = ["🍎", "🍌", "🍇", "🍒", "🥝", "🍍", "🍉", "🍓"];
+let gameBoard = document.getElementById("gameBoard");
+let statusText = document.getElementById("status");
 
-// Emoji set (duplicated for pairs)
-const emojis = ["🍎", "🍌", "🍇", "🍉", "🍓", "🍍", "🥭", "🍒"];
-let cards = [...emojis, ...emojis];
+let cards = [...cardsArray, ...cardsArray]; // duplicate for pairs
+let flippedCards = [];
+let matchedCards = 0;
+let moves = 0;
 
 // Shuffle function
-cards.sort(() => 0.5 - Math.random());
+function shuffle(array) {
+    return array.sort(() => Math.random() - 0.5);
+}
 
-// Game state
-let firstCard, secondCard;
-let lockBoard = false;
+// Create board
+function createBoard() {
+    gameBoard.innerHTML = "";
+    shuffle(cards).forEach((emoji) => {
+        const card = document.createElement("div");
+        card.classList.add("card");
+        card.dataset.emoji = emoji;
+        card.addEventListener("click", flipCard);
+        gameBoard.appendChild(card);
+    });
+}
 
-// Create cards
-cards.forEach(emoji => {
-  const card = document.createElement("div");
-  card.classList.add("card");
-  card.dataset.emoji = emoji;
-  card.textContent = "?";
-  card.addEventListener("click", flipCard);
-  gameBoard.appendChild(card);
-});
-
+// Flip card
 function flipCard() {
-  if (lockBoard) return;
-  if (this === firstCard) return;
+    if (this.classList.contains("flipped") || this.classList.contains("matched")) return;
 
-  this.classList.add("flipped");
-  this.textContent = this.dataset.emoji;
+    this.textContent = this.dataset.emoji;
+    this.classList.add("flipped");
+    flippedCards.push(this);
 
-  if (!firstCard) {
-    firstCard = this;
-    return;
-  }
-
-  secondCard = this;
-  checkMatch();
+    if (flippedCards.length === 2) {
+        moves++;
+        statusText.textContent = `Moves: ${moves}`;
+        checkMatch();
+    }
 }
 
+// Check match
 function checkMatch() {
-  let isMatch = firstCard.dataset.emoji === secondCard.dataset.emoji;
-  isMatch ? disableCards() : unflipCards();
+    const [card1, card2] = flippedCards;
+
+    if (card1.dataset.emoji === card2.dataset.emoji) {
+        card1.classList.add("matched");
+        card2.classList.add("matched");
+        matchedCards += 2;
+        flippedCards = [];
+
+        if (matchedCards === cards.length) {
+            setTimeout(() => {
+                alert(`🎉 You won in ${moves} moves!`);
+            }, 300);
+        }
+    } else {
+        setTimeout(() => {
+            card1.textContent = "";
+            card2.textContent = "";
+            card1.classList.remove("flipped");
+            card2.classList.remove("flipped");
+            flippedCards = [];
+        }, 800);
+    }
 }
 
-function disableCards() {
-  firstCard.removeEventListener("click", flipCard);
-  secondCard.removeEventListener("click", flipCard);
-  resetBoard();
+// Restart game
+function restartGame() {
+    moves = 0;
+    matchedCards = 0;
+    flippedCards = [];
+    statusText.textContent = "Moves: 0";
+    createBoard();
 }
 
-function unflipCards() {
-  lockBoard = true;
-  setTimeout(() => {
-    firstCard.classList.remove("flipped");
-    secondCard.classList.remove("flipped");
-    firstCard.textContent = "?";
-    secondCard.textContent = "?";
-    resetBoard();
-  }, 1000);
-}
-
-function resetBoard() {
-  [firstCard, secondCard] = [null, null];
-  lockBoard = false;
-}
+// Start game
+createBoard();
